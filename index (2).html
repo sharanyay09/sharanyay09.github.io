@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sharanya's Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a1126; --navy:#15214a; --wall:#22336a; --blue:#2f5fe0; --sky:#9db8f2;
+    --paper:#eef2fc; --orange:#f2a531; --cork:#c9935a; --line:#3b5bd9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--ink);color:var(--paper);font-family:'Outfit',sans-serif;overflow:hidden}
+  .mono{font-family:'Space Mono',monospace}
+
+  /* ---------- stage ---------- */
+  #stage{position:relative;height:100dvh;max-width:480px;margin:0 auto}
+  #scene{width:100%;height:100%;display:block;filter:brightness(.18) saturate(.6);transition:filter 1.4s ease}
+  body.on #scene{filter:none}
+  .obj{cursor:pointer;transition:filter .25s}
+  .obj:hover,.obj:focus{filter:drop-shadow(0 0 8px rgba(242,165,49,.9));outline:none}
+  .tag rect{fill:var(--paper);stroke:var(--ink);stroke-width:1.5}
+  .tag text{font-family:'Space Mono',monospace;font-size:9.5px;fill:var(--ink);font-weight:700}
+  .obj.seen .tag rect{fill:var(--orange)}
+  .pulse{fill:none;stroke:var(--orange);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:pulse 1.8s ease-out infinite}
+  .obj.seen .pulse{display:none}
+  @keyframes pulse{0%{transform:scale(.4);opacity:1}100%{transform:scale(2.2);opacity:0}}
+  .twinkle{animation:tw 2.4s ease-in-out infinite}
+  .twinkle:nth-child(2n){animation-delay:.8s}.twinkle:nth-child(3n){animation-delay:1.5s}
+  @keyframes tw{50%{opacity:.2}}
+  .steam{animation:steam 3s ease-in-out infinite;opacity:0}
+  .steam.b{animation-delay:1.5s}
+  @keyframes steam{0%{opacity:0;transform:translateY(4px)}40%{opacity:.7}100%{opacity:0;transform:translateY(-10px)}}
+  .cone{opacity:0;transition:opacity 1.2s .4s}
+  body.on .cone{opacity:1}
+  .blink{animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .draw{stroke-dasharray:120;stroke-dashoffset:120;animation:draw 3s ease forwards infinite}
+  @keyframes draw{60%,100%{stroke-dashoffset:0}}
+
+  /* ---------- HUD ---------- */
+  .hud{position:absolute;left:12px;right:12px;opacity:0;transition:opacity .8s 1s;pointer-events:none}
+  body.on .hud{opacity:1}
+  .hud > *{pointer-events:auto}
+  #badge{top:14px;display:flex;align-items:center;gap:10px}
+  #badge .box{background:var(--ink);border:2px solid #3a4568;padding:8px 14px 8px 8px;display:flex;align-items:center;gap:10px;box-shadow:4px 4px 0 #000}
+  #badge .ico{width:30px;height:30px;background:var(--blue);border:2px solid var(--paper);border-radius:6px;display:grid;place-items:center;font-size:15px}
+  #badge b{font-weight:800;font-size:18px}
+  #caption{bottom:78px;background:rgba(10,17,38,.92);border:2px solid #3a4568;padding:12px 14px;text-align:center;font-size:12.5px;line-height:1.55;letter-spacing:.04em;box-shadow:4px 4px 0 #000}
+  #caption em{color:var(--orange);font-style:normal;font-weight:700}
+  #counter{bottom:20px;display:flex;justify-content:flex-end}
+  #counter .box{background:var(--ink);border:2px solid #3a4568;padding:10px 14px;display:flex;align-items:center;gap:12px;letter-spacing:.25em;font-size:12px;box-shadow:4px 4px 0 #000}
+  .sq{width:12px;height:12px;border:2px solid var(--paper);display:inline-block;margin-left:5px}
+  .sq.on{background:var(--orange);border-color:var(--orange)}
+
+  /* ---------- intro ---------- */
+  #intro{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center;padding:30px;background:radial-gradient(circle at 50% 35%,#1a2650 0%,var(--ink) 70%);transition:opacity .9s, visibility .9s}
+  body.on #intro{opacity:0;visibility:hidden}
+  #intro .note{background:var(--paper);color:var(--ink);padding:16px 18px;max-width:260px;transform:rotate(-2deg);box-shadow:5px 5px 0 #000;position:relative;font-size:11.5px;line-height:1.6}
+  #intro .note:before{content:"";position:absolute;top:-7px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--orange);border:2px solid var(--ink)}
+  #intro .note b{display:block;font-size:13px;margin-bottom:6px}
+  #intro h1{font-size:34px;font-weight:800;letter-spacing:-.01em}
+  #intro h1 span{color:var(--orange)}
+  .btn{background:#53607e;color:var(--paper);border:3px solid #7a86a3;padding:16px 26px;font-family:'Space Mono',monospace;letter-spacing:.3em;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:14px;box-shadow:5px 5px 0 #000}
+  .btn:hover{background:var(--blue)}
+  .btn i{width:14px;height:14px;border-radius:50%;background:var(--orange);display:inline-block;animation:blink 1.4s steps(2) infinite}
+
+  /* ---------- sheets ---------- */
+  .sheet{position:fixed;inset:0;z-index:30;display:none;overflow-y:auto;padding:18px 16px 40px;animation:rise .35s ease}
+  .sheet.show{display:block}
+  @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+  .inner{max-width:480px;margin:0 auto}
+  .close{position:sticky;top:0;float:right;z-index:2;background:var(--paper);color:var(--ink);border:2px solid var(--ink);width:40px;height:40px;font-size:20px;font-weight:800;cursor:pointer;box-shadow:3px 3px 0 #000}
+  .kicker{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.3em;text-transform:uppercase;opacity:.75}
+  .sheet h2{font-size:28px;font-weight:800;margin:6px 0 4px}
+
+  /* monitor */
+  #s-monitor{background:#060b1d}
+  .os{margin-top:18px;border:3px solid var(--paper);background:#0f1d4a;box-shadow:6px 6px 0 #000}
+  .os .bar{background:var(--paper);color:var(--ink);padding:7px 10px;display:flex;gap:6px;align-items:center;font-family:'Space Mono',monospace;font-size:11px}
+  .os .bar span{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--ink)}
+  .os .bar span:nth-child(1){background:#ff6b5e}.os .bar span:nth-child(2){background:var(--orange)}.os .bar span:nth-child(3){background:#5fd38d}
+  .os .bar em{margin-left:8px;font-style:normal}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px 10px;padding:22px 12px}
+  .app{background:none;border:none;color:var(--paper);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:'Space Mono',monospace;font-size:10.5px;line-height:1.3}
+  .app .ic{width:54px;height:54px;border:2.5px solid var(--paper);border-radius:12px;display:grid;place-items:center;font-size:26px;box-shadow:3px 3px 0 #000;transition:transform .15s}
+  .app:hover .ic{transform:translateY(-3px) rotate(-3deg)}
+  .detail{padding:18px 16px 22px;display:none}
+  .detail.show{display:block}
+  .back{background:none;border:1.5px solid var(--sky);color:var(--sky);font-family:'Space Mono',monospace;font-size:11px;padding:5px 10px;cursor:pointer;margin-bottom:14px}
+  .detail h3{font-size:22px;font-weight:800}
+  .detail .tagline{color:var(--orange);font-family:'Space Mono',monospace;font-size:11.5px;margin:4px 0 12px}
+  .detail p{font-size:14.5px;line-height:1.6;opacity:.92;margin-bottom:10px}
+  .detail ul{margin:6px 0 12px 18px;font-size:14px;line-height:1.6}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px}
+  .chips span{font-family:'Space Mono',monospace;font-size:10.5px;border:1.5px solid var(--sky);color:var(--sky);padding:3px 8px}
+  .link{display:inline-block;background:var(--orange);color:var(--ink);text-decoration:none;font-weight:700;padding:9px 14px;border:2px solid var(--ink);box-shadow:3px 3px 0 #000;font-size:13px}
+  .app.feat{grid-column:span 4;flex-direction:row;gap:14px;text-align:left;background:rgba(242,165,49,.08);border:2px dashed var(--orange);padding:12px}
+  .app.feat .ft{display:flex;flex-direction:column;gap:3px}
+  .app.feat .star{color:var(--orange);font-size:9.5px;letter-spacing:.2em}
+  .app.feat strong{font-family:'Outfit',sans-serif;font-size:17px}
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 16px}
+  .mt{border:2px solid var(--paper);padding:10px 6px;text-align:center;background:#0a1438;box-shadow:3px 3px 0 #000}
+  .mt b{display:block;font-size:24px;font-weight:800;color:var(--orange)}
+  .mt span{font-family:'Space Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+  .mt.bm b{color:var(--sky)}
+  .sec{margin-bottom:14px}
+  .sh{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--sky);border-bottom:1px solid rgba(157,184,242,.3);padding-bottom:5px;margin-bottom:8px}
+  .sec p{margin-bottom:0}
+  .sec ul{margin:0 0 0 18px}
+  .sec .chips{margin:0}
+  .prompt{font-family:'Space Mono',monospace;font-size:11px;color:var(--sky);padding:0 14px 14px}
+
+  /* board */
+  #s-board{background:var(--cork) radial-gradient(rgba(0,0,0,.12) 1px,transparent 1.5px) 0 0/9px 9px;color:var(--ink)}
+  #s-board .kicker{opacity:.7}
+  .notes{display:grid;grid-template-columns:1fr 1fr;gap:18px 14px;margin-top:20px}
+  .n{background:var(--paper);padding:20px 13px 14px;position:relative;box-shadow:4px 5px 0 rgba(0,0,0,.35);font-size:13px;line-height:1.5}
+  .n:before{content:"";position:absolute;top:-6px;left:50%;margin-left:-7px;width:14px;height:14px;border-radius:50%;background:#e2543f;border:2px solid var(--ink)}
+  .n b{display:block;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+  .n.wide{grid-column:span 2}
+  .n.o{background:var(--orange)} .n.b{background:var(--sky)}
+  .n:nth-child(odd){transform:rotate(-1.6deg)} .n:nth-child(even){transform:rotate(1.4deg)}
+  .n a{color:var(--ink);font-weight:700}
+  .polaroid{display:flex;gap:12px;align-items:center}
+  .polaroid .ph{flex:0 0 74px;height:84px;background:var(--ink);border:6px solid #fff;border-bottom-width:18px;display:grid;place-items:center;font-size:30px}
+
+  /* window */
+  #s-window{background:linear-gradient(#050a1f,#1b2c66 75%,#2c4590)}
+  #s-window .stars{position:fixed;inset:0;pointer-events:none}
+  .goal{position:relative;margin:18px 0 0 6px;padding:0 0 18px 30px;border-left:2px dashed rgba(157,184,242,.45)}
+  .goal:last-child{border-left-color:transparent}
+  .goal:before{content:"★";position:absolute;left:-11px;top:-3px;color:var(--orange);font-size:20px;text-shadow:0 0 10px var(--orange)}
+  .goal .when{font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.2em;color:var(--sky);text-transform:uppercase}
+  .goal h4{font-size:18px;font-weight:600;margin:3px 0 4px}
+  .goal p{font-size:14px;line-height:1.55;opacity:.85}
+  .moon{position:absolute;right:22px;top:70px;width:54px;height:54px;border-radius:50%;background:#f6e7b0;box-shadow:0 0 30px #f6e7b0aa}
+
+  /* finale */
+  #finale{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(6,11,29,.88);overflow:hidden}
+  #finale.show{display:flex;animation:rise .4s ease}
+  #finale .card{position:relative;background:var(--paper);color:var(--ink);border:3px solid var(--ink);box-shadow:7px 7px 0 #000;padding:22px 18px;max-width:380px;width:100%;text-align:center;transform:rotate(-1deg)}
+  #finale h2{font-size:26px;font-weight:800;margin:4px 0 6px}
+  #finale .sub{font-size:14px;line-height:1.5;opacity:.85;margin-bottom:14px}
+  .q{font-size:14px;font-weight:700;margin-bottom:10px}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .opts button{font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;padding:10px;border:2px solid var(--ink);background:#fff;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
+  .opts button:hover{background:var(--sky)}
+  .opts button.right{background:#5fd38d}.opts button.wrong{background:#ff8a7a}
+  .opts button:disabled{cursor:default;color:var(--ink);opacity:1}
+  .opts button:disabled:not(.right):not(.wrong){opacity:.45}
+  .res{min-height:22px;margin:12px 0 4px;font-size:14px;font-weight:600}
+  .actions{display:flex;gap:10px;justify-content:center;margin-top:8px}
+  .fbtn{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;padding:10px 12px;border:2px solid var(--ink);background:var(--sky);color:var(--ink);cursor:pointer;text-decoration:none;box-shadow:3px 3px 0 var(--ink)}
+  .fbtn.o{background:var(--orange)}
+  .mail{font-size:11px;margin-top:10px;opacity:.7}
+  .lampoff{margin-top:14px;background:none;border:none;font-size:11px;text-decoration:underline;cursor:pointer;color:var(--ink);opacity:.75}
+  #confetti i{position:absolute;top:-10px;width:8px;height:12px;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+</style>
+</head>
+<body>
+
+<!-- ============ INTRO ============ -->
+<div id="intro">
+  <div class="note mono"><b>A little about this room</b>I'm a CS engineer who fell for markets. This desk holds the things I've built, who I am, and where I'm headed.</div>
+  <h1>Sharanya's <span>Desk</span></h1>
+  <button class="btn" id="lampBtn"><i></i>SWITCH ON THE LAMP</button>
+</div>
+
+<!-- ============ ROOM ============ -->
+<div id="stage">
+<svg id="scene" viewBox="0 0 400 720" preserveAspectRatio="xMidYMid slice" aria-label="Sharanya's study desk">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070d27"/><stop offset="1" stop-color="#2b4287"/></linearGradient>
+    <radialGradient id="cone" cx="0.3" cy="0" r="1"><stop offset="0" stop-color="#ffd27a" stop-opacity=".6"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="screenGlow" cx=".5" cy=".5" r=".6"><stop offset="0" stop-color="#4f7cff" stop-opacity=".45"/><stop offset="1" stop-color="#4f7cff" stop-opacity="0"/></radialGradient>
+    <pattern id="dots" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".8" fill="#ffffff" opacity=".07"/></pattern>
+    <pattern id="corkp" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#c9935a"/><circle cx="2" cy="2" r=".8" fill="#9e6c3c"/><circle cx="5" cy="4.5" r=".6" fill="#ddb07a"/></pattern>
+  </defs>
+
+  <!-- walls -->
+  <rect width="400" height="720" fill="#0e1736"/>
+  <polygon points="0,0 400,0 360,80 40,80" fill="#121d42"/>
+  <polygon points="0,0 40,80 40,480 0,720" fill="#1a2856"/>
+  <polygon points="400,0 360,80 360,480 400,720" fill="#1a2856"/>
+  <rect x="40" y="80" width="320" height="400" fill="#22336a"/>
+  <rect x="40" y="80" width="320" height="400" fill="url(#dots)"/>
+  <polygon points="40,480 360,480 400,720 0,720" fill="#17244e"/>
+  <g stroke="#2c3f7e" stroke-width="1">
+    <line x1="30" y1="520" x2="370" y2="520"/><line x1="20" y1="568" x2="380" y2="568"/>
+    <line x1="10" y1="630" x2="390" y2="630"/><line x1="3" y1="700" x2="397" y2="700"/>
+    <line x1="120" y1="480" x2="80" y2="720"/><line x1="200" y1="480" x2="200" y2="720"/><line x1="280" y1="480" x2="320" y2="720"/>
+  </g>
+  <g stroke="#3b5bd9" stroke-width="1.5" fill="none">
+    <line x1="0" y1="0" x2="40" y2="80"/><line x1="400" y1="0" x2="360" y2="80"/>
+    <line x1="40" y1="480" x2="0" y2="720"/><line x1="360" y1="480" x2="400" y2="720"/>
+    <rect x="40" y="80" width="320" height="400"/>
+  </g>
+  <rect x="40" y="468" width="320" height="12" fill="#1a2856"/>
+
+  <!-- ===== WINDOW (future) ===== -->
+  <g class="obj" data-id="window" tabindex="0" role="button" aria-label="Open the window: what's next">
+    <line x1="54" y1="108" x2="196" y2="108" stroke="#eef2fc" stroke-width="3"/>
+    <rect x="64" y="114" width="122" height="112" fill="#eef2fc" stroke="#0a1126" stroke-width="2"/>
+    <rect x="70" y="120" width="110" height="100" fill="url(#sky)"/>
+    <circle cx="158" cy="140" r="9" fill="#f6e7b0"/><circle cx="162" cy="137" r="8" fill="#0d1636"/>
+    <g fill="#fff">
+      <circle class="twinkle" cx="84" cy="134" r="1.3"/><circle class="twinkle" cx="104" cy="150" r="1"/>
+      <circle class="twinkle" cx="140" cy="128" r="1.1"/><circle class="twinkle" cx="92" cy="190" r="1"/>
+      <circle class="twinkle" cx="150" cy="186" r="1.3"/><circle class="twinkle" cx="170" cy="200" r="1"/>
+      <circle class="twinkle" cx="113" cy="205" r="1.2"/>
+    </g>
+    <!-- tiny skyline -->
+    <path d="M70 220 V204 h10 v-8 h8 v12 h10 v-16 h9 v20 h12 v-10 h10 v-6 h9 v16 h12 v-12 h10 v20 Z" fill="#0a1126"/>
+    <g fill="#f2a531"><rect x="91" y="200" width="2" height="2"/><rect x="101" y="196" width="2" height="2"/><rect x="141" y="206" width="2" height="2"/></g>
+    <line x1="125" y1="120" x2="125" y2="220" stroke="#eef2fc" stroke-width="4"/>
+    <line x1="70" y1="170" x2="180" y2="170" stroke="#eef2fc" stroke-width="4"/>
+    <rect x="58" y="226" width="134" height="7" fill="#eef2fc" stroke="#0a1126" stroke-width="1.5"/>
+    <path d="M58 109 h18 q-4 50 2 110 h-20 Z" fill="#9db8f2" stroke="#0a1126" stroke-width="1.5"/>
+    <path d="M192 109 h-18 q4 50 -2 110 h20 Z" fill="#9db8f2" stroke="#0a1126" stroke-width="1.5"/>
+    <g class="tag"><rect x="72" y="86" width="106" height="17"/><text x="125" y="98" text-anchor="middle">The Window</text></g>
+    <circle class="pulse" cx="125" cy="170" r="10"/>
+  </g>
+
+  <!-- ===== PIN BOARD (about me) ===== -->
+  <g class="obj" data-id="board" tabindex="0" role="button" aria-label="Open the pin board: about me">
+    <rect x="214" y="116" width="130" height="160" fill="#eef2fc" stroke="#0a1126" stroke-width="2"/>
+    <rect x="221" y="123" width="116" height="146" fill="url(#corkp)"/>
+    <!-- polaroid -->
+    <g transform="rotate(-6 245 155)">
+      <rect x="228" y="132" width="36" height="44" fill="#fff" stroke="#0a1126"/>
+      <rect x="232" y="136" width="28" height="28" fill="#2f5fe0"/>
+      <circle cx="246" cy="146" r="5" fill="#f2a531"/><path d="M236 164 q10 -12 20 0" fill="#f2a531"/>
+    </g>
+    <g transform="rotate(4 300 150)">
+      <rect x="278" y="134" width="46" height="36" fill="#eef2fc" stroke="#0a1126"/>
+      <g stroke="#2f5fe0" stroke-width="1.5"><line x1="283" y1="145" x2="318" y2="145"/><line x1="283" y1="152" x2="312" y2="152"/><line x1="283" y1="159" x2="316" y2="159"/></g>
+    </g>
+    <g transform="rotate(-3 250 215)">
+      <rect x="230" y="192" width="42" height="38" fill="#f2a531" stroke="#0a1126"/>
+      <text x="251" y="215" text-anchor="middle" font-family="Space Mono" font-size="9" font-weight="700" fill="#0a1126">ACM</text>
+    </g>
+    <g transform="rotate(5 300 220)">
+      <rect x="282" y="190" width="44" height="40" fill="#9db8f2" stroke="#0a1126"/>
+      <polyline points="287,222 296,214 303,218 312,204 320,208" fill="none" stroke="#0a1126" stroke-width="1.5"/>
+    </g>
+    <rect x="240" y="240" width="72" height="20" fill="#fff" stroke="#0a1126" transform="rotate(-2 276 250)"/>
+    <text x="276" y="254" text-anchor="middle" font-family="Space Mono" font-size="8" fill="#0a1126" transform="rotate(-2 276 250)">hi, i'm sharanya</text>
+    <path d="M246 134 L300 137 L251 193 L304 191" fill="none" stroke="#e2543f" stroke-width="1"/>
+    <g fill="#e2543f" stroke="#0a1126" stroke-width="1"><circle cx="246" cy="134" r="3"/><circle cx="300" cy="137" r="3"/><circle cx="251" cy="193" r="3"/><circle cx="304" cy="191" r="3"/></g>
+    <g class="tag"><rect x="230" y="94" width="98" height="17"/><text x="279" y="106" text-anchor="middle">The Pin Board</text></g>
+    <circle class="pulse" cx="279" cy="196" r="10"/>
+  </g>
+
+  <!-- ===== DESK ===== -->
+  <ellipse cx="200" cy="560" rx="150" ry="10" fill="#0a1126" opacity=".5"/>
+  <!-- lamp cone -->
+  <polygon class="cone" points="84,326 110,332 190,402 40,402" fill="url(#cone)"/>
+  <rect x="78" y="400" width="244" height="12" fill="#eef2fc" stroke="#0a1126" stroke-width="2"/>
+  <rect x="86" y="412" width="228" height="30" fill="#c9d6f5" stroke="#0a1126" stroke-width="2"/>
+  <line x1="200" y1="412" x2="200" y2="442" stroke="#0a1126" stroke-width="1.5"/>
+  <rect x="135" y="424" width="20" height="4" rx="2" fill="#0a1126"/><rect x="245" y="424" width="20" height="4" rx="2" fill="#0a1126"/>
+  <rect x="90" y="442" width="9" height="114" fill="#eef2fc" stroke="#0a1126" stroke-width="2"/>
+  <rect x="301" y="442" width="9" height="114" fill="#eef2fc" stroke="#0a1126" stroke-width="2"/>
+
+  <!-- lamp -->
+  <ellipse cx="110" cy="399" rx="15" ry="3.5" fill="#0a1126"/>
+  <polyline points="110,398 120,352 98,324" fill="none" stroke="#eef2fc" stroke-width="3"/>
+  <circle cx="120" cy="352" r="3" fill="#f2a531" stroke="#0a1126"/>
+  <polygon points="84,316 110,322 104,336 80,330" fill="#f2a531" stroke="#0a1126" stroke-width="1.5"/>
+  <circle class="cone" cx="94" cy="333" r="4" fill="#fff6d8"/>
+
+  <!-- books -->
+  <rect x="262" y="392" width="52" height="8" fill="#2f5fe0" stroke="#0a1126"/>
+  <rect x="266" y="384" width="44" height="8" fill="#f2a531" stroke="#0a1126"/>
+  <rect x="260" y="376" width="48" height="8" fill="#eef2fc" stroke="#0a1126"/>
+  <!-- mug -->
+  <rect x="284" y="358" width="14" height="17" rx="2" fill="#9db8f2" stroke="#0a1126" stroke-width="1.5"/>
+  <path d="M298 362 q7 0 7 5 q0 5 -7 5" fill="none" stroke="#0a1126" stroke-width="1.5"/>
+  <path class="steam" d="M288 354 q-3 -5 0 -10 q3 -5 0 -10" fill="none" stroke="#eef2fc" stroke-width="1.3"/>
+  <path class="steam b" d="M294 354 q-3 -5 0 -10 q3 -5 0 -10" fill="none" stroke="#eef2fc" stroke-width="1.3"/>
+  <!-- notebook + pen -->
+  <rect x="226" y="396" width="30" height="5" fill="#eef2fc" stroke="#0a1126" transform="skewX(-20)"/>
+
+  <!-- ===== MONITOR (projects) ===== -->
+  <g class="obj" data-id="monitor" tabindex="0" role="button" aria-label="Open the monitor: projects">
+    <ellipse cx="200" cy="340" rx="90" ry="60" fill="url(#screenGlow)" class="cone"/>
+    <rect x="192" y="376" width="16" height="22" fill="#eef2fc" stroke="#0a1126" stroke-width="1.5"/>
+    <rect x="172" y="396" width="56" height="5" fill="#eef2fc" stroke="#0a1126" stroke-width="1.5"/>
+    <rect x="136" y="296" width="128" height="82" rx="4" fill="#0a1126" stroke="#eef2fc" stroke-width="3"/>
+    <rect x="143" y="303" width="114" height="68" fill="#1846c8"/>
+    <rect x="143" y="303" width="114" height="8" fill="#eef2fc"/>
+    <g fill="#0a1126"><circle cx="148" cy="307" r="1.6"/><circle cx="153" cy="307" r="1.6"/><circle cx="158" cy="307" r="1.6"/></g>
+    <g fill="#eef2fc" stroke="#0a1126"><rect x="150" y="318" width="13" height="13" rx="3"/><rect x="168" y="318" width="13" height="13" rx="3"/><rect x="150" y="337" width="13" height="13" rx="3"/><rect x="168" y="337" width="13" height="13" rx="3"/></g>
+    <rect x="188" y="318" width="62" height="44" fill="#0a1126" opacity=".55"/>
+    <polyline class="draw" points="192,356 202,350 210,353 220,340 230,344 240,328 247,331" fill="none" stroke="#f2a531" stroke-width="2"/>
+    <rect class="blink" x="150" y="356" width="6" height="8" fill="#eef2fc"/>
+    <g class="tag"><rect x="153" y="274" width="94" height="17"/><text x="200" y="286" text-anchor="middle">The Monitor</text></g>
+    <circle class="pulse" cx="200" cy="337" r="12"/>
+  </g>
+
+  <!-- chair -->
+  <g>
+    <rect x="160" y="478" width="80" height="78" rx="10" fill="#2f5fe0" stroke="#0a1126" stroke-width="2"/>
+    <rect x="170" y="488" width="60" height="58" rx="7" fill="none" stroke="#9db8f2" stroke-width="1.5"/>
+    <rect x="146" y="556" width="108" height="14" rx="4" fill="#eef2fc" stroke="#0a1126" stroke-width="2"/>
+    <rect x="195" y="570" width="10" height="40" fill="#0a1126"/>
+    <path d="M160 626 L200 610 L240 626" fill="none" stroke="#0a1126" stroke-width="5"/>
+    <circle cx="160" cy="628" r="5" fill="#eef2fc" stroke="#0a1126"/><circle cx="240" cy="628" r="5" fill="#eef2fc" stroke="#0a1126"/><circle cx="200" cy="616" r="5" fill="#eef2fc" stroke="#0a1126"/>
+  </g>
+
+  <!-- plant -->
+  <g>
+    <path d="M335 470 q-14 -30 -2 -48 q4 24 6 46 M340 470 q4 -34 20 -42 q-10 20 -14 44 M338 470 q-26 -14 -26 -36 q14 14 24 34" fill="#5fd38d" stroke="#0a1126" stroke-width="1.5"/>
+    <polygon points="324,470 354,470 350,500 328,500" fill="#f2a531" stroke="#0a1126" stroke-width="2"/>
+  </g>
+</svg>
+
+<div class="hud" id="badge"><div class="box"><div class="ico">✦</div><b>Sharanya's Desk</b></div></div>
+<div class="hud mono" id="caption">Tap the <em>Monitor</em>, the <em>Pin Board</em> or the <em>Window</em>.</div>
+<div class="hud mono" id="counter"><div class="box">EXPLORED <span id="count">0/3</span><span><i class="sq" data-k="monitor"></i><i class="sq" data-k="board"></i><i class="sq" data-k="window"></i></span></div></div>
+</div>
+
+<div id="finale">
+  <div id="confetti"></div>
+  <div class="card">
+    <div class="kicker mono">Explored 3/3 ✦</div>
+    <h2>You saw the whole desk!</h2>
+    <p class="sub">One last thing before you leave. I'm learning every capital, so now you have to as well.</p>
+    <div id="quiz">
+      <div class="q mono" id="qText"></div>
+      <div class="opts" id="opts"></div>
+      <div class="res" id="res"></div>
+    </div>
+    <div class="actions">
+      <button class="fbtn" id="again">Another one 🌍</button>
+      <button class="fbtn o copyMail">Say hi ✉️</button>
+    </div>
+    <div class="mail mono">sharanyay23@gmail.com</div>
+    <button class="lampoff mono" id="lampOff">💡 turn off the lamp &amp; leave</button>
+  </div>
+</div>
+
+<!-- ============ MONITOR SHEET ============ -->
+<section class="sheet" id="s-monitor" aria-label="Projects">
+  <div class="inner">
+    <button class="close" data-close>×</button>
+    <div class="kicker">The Monitor</div>
+    <h2>Things I've built</h2>
+    <div class="os">
+      <div class="bar"><span></span><span></span><span></span><em>sharanya@desk:~/projects</em></div>
+      <div id="home">
+        <div class="grid" id="apps"></div>
+        <div class="prompt">$ open any app to read more<span class="blink">_</span></div>
+      </div>
+      <div class="detail" id="detail"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BOARD SHEET ============ -->
+<section class="sheet" id="s-board" aria-label="About me">
+  <div class="inner">
+    <button class="close" data-close>×</button>
+    <div class="kicker mono">The Pin Board</div>
+    <h2>A little about me</h2>
+    <div class="notes">
+      <div class="n wide"><div class="polaroid"><div class="ph">👩🏻‍💻</div><div><b>Hi, I'm Sharanya</b>I'm a computer science undergraduate interested in the intersection of technology, financial markets, and human decision-making. I build things to understand how systems work, from market strategies to machine learning applications.<br><span style="font-size:11px;opacity:.7">B.Tech CSE · IFHE Hyderabad · 2028</span></div></div></div>
+      <div class="n o"><b>Roles</b>Treasurer, ACM<br>Marketing Head, IFHE Student Magazine Committee</div>
+      <div class="n b"><b>Sports 🏟️</b>Very into watching. Not so into playing.</div>
+      <div class="n"><b>Side quest 🌍</b>Learning every capital city. Ask me one, I dare you.</div>
+      <div class="n b"><b>Reading 📖</b>Crying over Sally Rooney books. On purpose. Repeatedly.</div>
+      <div class="n wide"><b>Toolbox</b>Python · pandas · Streamlit · OpenCV · YOLOv8 · Flask · React · FastAPI</div>
+      <div class="n wide"><b>Find me</b>
+        GitHub: <a href="https://github.com/sharanyay09" target="_blank" rel="noopener">github.com/sharanyay09</a><br>
+        Email: <a href="#" class="copyMail" data-label="sharanyay23@gmail.com">sharanyay23@gmail.com</a> <span style="font-size:11px;opacity:.7">(tap to copy)</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WINDOW SHEET ============ -->
+<section class="sheet" id="s-window" aria-label="What's next">
+  <canvas class="stars" id="stars"></canvas>
+  <div class="moon"></div>
+  <div class="inner" style="position:relative">
+    <button class="close" data-close>×</button>
+    <div class="kicker mono">The Window</div>
+    <h2>What's next</h2>
+    <p style="opacity:.8;font-size:14px;margin-bottom:6px">The view from here. These are the things I'm working toward.</p>
+    <div class="goal"><div class="when">Summer 2027</div><h4>Summer 2027 internship</h4><p>Seeking Summer 2027 opportunities in quantitative research, financial technology, analytics, and strategy.</p></div>
+    <div class="goal"><div class="when">Next build</div><h4>Factor Lab</h4><p>Adding value and quality factors to Momentum Lab so I can test more than one idea against the market.</p></div>
+    <div class="goal"><div class="when">Research</div><h4>A cross-country payments study</h4><p>Taking my digital payments and spending research to a comparison of India and Italy.</p></div>
+    <div class="goal"><div class="when">Long run</div><h4>Building at the edge of code and markets</h4><p>Quant, fintech, consulting, and the behavioral side of how people use money.</p></div>
+  </div>
+</section>
+
+<script>
+const GH="https://github.com/sharanyay09";
+const projects = [
+  {ic:"📈", bg:"#f2a531", name:"Momentum Lab", tag:"Quant research · Factor backtesting · Nifty 50", featured:true,
+   problem:"Does cross-sectional momentum (buying recent winners) actually work in Indian large caps, and does the result hold up under proper testing?",
+   approach:["Ranked Nifty 50 stocks on 12-1 month momentum and built rebalanced portfolios from the top-ranked names","Benchmarked every run against the Nifty 50","Stress-tested results with robustness checks across lookback windows, significance tests and market-regime splits","Packaged it as an interactive Streamlit app: stock explorer, backtest, robustness, significance and regimes"],
+   metrics:[["25.2%","CAGR"],["1.29","Sharpe ratio"]],
+   results:"The momentum portfolio delivered a 25.2% CAGR with a Sharpe ratio of 1.29, benchmarked against the Nifty 50.",
+   limits:["Survivorship bias: a universe built from index members can overstate returns","Transaction costs, slippage and taxes are simplified","A 50-stock universe means concentrated portfolios","One historical period. Past performance doesn't guarantee future returns","The 12-1 long-short variant was not statistically significant, which is a useful reality check on the headline numbers"],
+   next:"Adding value and quality factors (Factor Lab) to test multi-factor portfolios.",
+   stack:["Python","pandas","NumPy","Streamlit","Plotly"], link:GH+"/Momentum-lab"},
+  {ic:"🛸", bg:"#9db8f2", name:"DroneNav AI", tag:"Computer vision · Team lead (4) · Semester 5",
+   problem:"An autonomous drone has to spot obstacles and choose a safe move in real time, without the compute budget of a data center.",
+   approach:["Built a computer-vision pipeline that detects and tracks obstacles frame by frame","Designed a risk-based navigator that scores each obstacle on position, proximity and detection confidence, then outputs LEFT, RIGHT, FORWARD or STOP","Benchmarked YOLOv8 against RT-DETR","Built a Flask dashboard with a live feed, a navigation panel, analytics and detection history"],
+   results:"A working real-time detection and navigation system that runs from a webcam, with no drone hardware needed. It includes a side-by-side model comparison on FPS, latency and CPU load. I led the four-person team.",
+   stack:["Python","OpenCV","YOLOv8","RT-DETR","Flask","Chart.js","SQLite"], link:GH+"/drone-navigation"},
+  {ic:"💳", bg:"#5fd38d", name:"Payments Study", tag:"Behavioral economics × fintech research",
+   problem:"Does paying digitally change how much people spend, and how much risk and trust they feel when they do?",
+   approach:["Framed the question through prospect theory and loss aversion","Designed a survey instrument, now in its third version, built on established trust (McKnight et al., 2002) and perceived-risk (Featherman & Pavlou, 2003) frameworks","Reached out to faculty internationally for methodological feedback"],
+   results:"Survey instrument v3 is complete, and I'm in discussions with university faculty about extending the study to an India–Italy cross-country comparison.",
+   stack:["Survey design","Behavioral economics","Research methods"], link:null},
+  {ic:"⏰", bg:"#ff8a7a", name:"Last-Minute Life Saver", tag:"AI productivity companion · Full-stack",
+   problem:"Many students and professionals procrastinate and struggle to manage deadlines. Most tools store tasks, but they don't help you actually finish on time.",
+   approach:["Built an AI-powered productivity companion that helps users plan tasks, beat deadlines and stay productive","Smart task planning with deadline-risk analysis that flags work likely to slip","An AI assistant for productivity help, plus a calendar for scheduling","Motivation loop: progress history, a streak counter and achievement badges","Five screens (Dashboard, Calendar, AI Assistant, Analytics, Settings) with a responsive UI and light/dark mode"],
+   results:"A complete full-stack app: a React front end with routing and Chart.js analytics, connected to a Python FastAPI back end that powers the AI and risk features.",
+   stack:["React.js","Vite","React Router","Chart.js","CSS","Python","FastAPI","Axios"], link:GH+"/The-Last-Minute-File-Saver"},
+  {ic:"🩺", bg:"#eef2fc", name:"Truggle", tag:"Machine learning · Internship capstone",
+   problem:"It's hard to tell at a glance whether an open-source repository is healthy and actively maintained.",
+   approach:["Built a classifier on GitHub repository data","Trained and compared Decision Tree, Random Forest and KNN models"],
+   results:"Delivered as the capstone of my YBI Foundation ML internship.",
+   stack:["Python","scikit-learn","pandas"], link:GH+"/GITHUB-REPOSITORY-HEALTH-CLASSIFIER-"}
+];
+
+const apps = document.getElementById('apps'), detail = document.getElementById('detail'), home = document.getElementById('home');
+projects.forEach((p,i)=>{
+  const b=document.createElement('button'); b.className='app'+(p.featured?' feat':'');
+  b.innerHTML=p.featured
+    ? `<div class="ic" style="background:${p.bg}">${p.ic}</div><div class="ft"><span class="star">★ FEATURED</span><strong>${p.name}</strong><span>${p.metrics.map(m=>m[0]+' '+m[1]).join(' · ')}</span></div>`
+    : `<div class="ic" style="background:${p.bg}">${p.ic}</div>${p.name}`;
+  b.onclick=()=>showProject(i); apps.appendChild(b);
+});
+const sec=(t,h)=>`<div class="sec"><div class="sh">${t}</div>${h}</div>`;
+const ul=a=>`<ul>${a.map(t=>`<li>${t}</li>`).join('')}</ul>`;
+function showProject(i){
+  const p=projects[i];
+  detail.innerHTML=`<button class="back">← all projects</button>
+    <h3>${p.ic} ${p.name}</h3><div class="tagline">${p.tag}</div>
+    ${p.metrics?`<div class="metrics">${p.metrics.map(m=>`<div class="mt"><b>${m[0]}</b><span>${m[1]}</span></div>`).join('')}<div class="mt bm"><b>vs</b><span>Nifty 50 benchmark</span></div></div>`:''}
+    ${sec('01 · The problem',`<p>${p.problem}</p>`)}
+    ${sec('02 · Approach',ul(p.approach))}
+    ${sec('03 · Results',`<p>${p.results}</p>`)}
+    ${p.limits?sec('04 · Limitations',ul(p.limits)):''}
+    ${p.next?sec('Next',`<p>${p.next}</p>`):''}
+    ${sec('Tech',`<div class="chips">${p.stack.map(s=>`<span>${s}</span>`).join('')}</div>`)}
+    ${p.link?`<a class="link" href="${p.link}" target="_blank" rel="noopener">${p.link===GH?'View my GitHub →':'View on GitHub →'}</a>`:`<div class="prompt" style="padding:0">Research in progress. Happy to share details.</div>`}`;
+  detail.querySelector('.back').onclick=()=>{detail.classList.remove('show');home.style.display='';};
+  home.style.display='none'; detail.classList.add('show');
+  document.getElementById('s-monitor').scrollTop=0;
+}
+
+/* lamp */
+document.getElementById('lampBtn').onclick=()=>document.body.classList.add('on');
+
+/* objects */
+const seen=new Set();
+const captions={
+  monitor:'<em>The Monitor</em>: everything I\'ve built so far.',
+  board:'<em>The Pin Board</em>: who I am, pinned up.',
+  window:'<em>The Window</em>: where I\'m headed.'
+};
+const sheetFor={monitor:'s-monitor',board:'s-board',window:'s-window'};
+document.querySelectorAll('.obj').forEach(g=>{
+  const go=()=>openObj(g.dataset.id);
+  g.addEventListener('click',go);
+  g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});
+});
+function openObj(id){
+  document.getElementById('caption').innerHTML=captions[id];
+  document.querySelector(`.obj[data-id="${id}"]`).classList.add('seen');
+  document.querySelector(`.sq[data-k="${id}"]`).classList.add('on');
+  const first=!seen.has(id); seen.add(id);
+  document.getElementById('count').textContent=seen.size+'/3';
+  document.getElementById(sheetFor[id]).classList.add('show');
+  if(id==='window') drawStars();
+  if(first && seen.size===3) window._finale=true;
+}
+function closeSheets(){
+  document.querySelectorAll('.sheet.show').forEach(s=>s.classList.remove('show'));
+  detail.classList.remove('show'); home.style.display='';
+  if(window._finale){window._finale=false;setTimeout(openFinale,450);}
+}
+
+/* finale: capital quiz */
+const caps=[["Australia","Canberra",["Sydney","Melbourne","Perth"]],["Canada","Ottawa",["Toronto","Vancouver","Montreal"]],
+ ["Turkey","Ankara",["Istanbul","Izmir","Antalya"]],["Brazil","Brasília",["Rio de Janeiro","São Paulo","Salvador"]],
+ ["Switzerland","Bern",["Zurich","Geneva","Basel"]],["Nigeria","Abuja",["Lagos","Ibadan","Kano"]],
+ ["New Zealand","Wellington",["Auckland","Christchurch","Queenstown"]],["Morocco","Rabat",["Casablanca","Marrakesh","Fez"]],
+ ["Vietnam","Hanoi",["Ho Chi Minh City","Da Nang","Hue"]],["Kazakhstan","Astana",["Almaty","Shymkent","Aktobe"]],
+ ["Ireland","Dublin",["Cork","Galway","Limerick"]],["Myanmar","Naypyidaw",["Yangon","Mandalay","Bagan"]],
+ ["Bolivia","Sucre",["Santa Cruz","Cochabamba","El Alto"]],["Tanzania","Dodoma",["Dar es Salaam","Arusha","Zanzibar City"]]];
+const winLines=["Correct! You're officially smarter than my flashcards.","Yes!! Okay, you can stay.","Correct. Sally Rooney would write a whole novel about this moment."];
+const loseLines=["Nope 😭 don't worry, I got that one wrong too.","Wrong, but confidently wrong, and that counts for something.","Not quite. Go cry about it with a Sally Rooney book."];
+let lastQ=-1;
+function newQ(){
+  let i; do{i=Math.floor(Math.random()*caps.length)}while(i===lastQ); lastQ=i;
+  const [c,a,d]=caps[i]; const choices=[a,...d.sort(()=>Math.random()-.5).slice(0,3)].sort(()=>Math.random()-.5);
+  document.getElementById('qText').textContent=`What's the capital of ${c}?`;
+  const o=document.getElementById('opts'), r=document.getElementById('res'); o.innerHTML=''; r.textContent='';
+  choices.forEach(ch=>{const b=document.createElement('button');b.textContent=ch;
+    b.onclick=()=>{o.querySelectorAll('button').forEach(x=>{x.disabled=true;if(x.textContent===a)x.classList.add('right');});
+      const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+      if(ch===a){r.textContent=pick(winLines);confetti();}else{b.classList.add('wrong');r.textContent=pick(loseLines);}};
+    o.appendChild(b);});
+}
+function confetti(){
+  const box=document.getElementById('confetti'); const cols=['#f2a531','#2f5fe0','#9db8f2','#5fd38d','#ff8a7a'];
+  for(let k=0;k<60;k++){const s=document.createElement('i');s.style.left=Math.random()*100+'%';
+    s.style.background=cols[k%cols.length];s.style.animationDuration=(1.6+Math.random()*1.8)+'s';s.style.animationDelay=Math.random()*.4+'s';
+    box.appendChild(s);setTimeout(()=>s.remove(),4000);}
+}
+function openFinale(){document.getElementById('finale').classList.add('show');newQ();confetti();}
+document.getElementById('again').onclick=newQ;
+document.querySelectorAll('.copyMail').forEach(el=>el.addEventListener('click',async e=>{
+  e.preventDefault();
+  const mail='sharanyay23@gmail.com', orig=el.dataset.label||el.textContent;
+  let ok=false;
+  try{await navigator.clipboard.writeText(mail);ok=true;}catch(_){
+    try{const t=document.createElement('textarea');t.value=mail;document.body.appendChild(t);t.select();ok=document.execCommand('copy');t.remove();}catch(__){}
+  }
+  el.textContent=ok?'Email copied ✓':mail;
+  try{window.location.href='mailto:'+mail;}catch(_){}
+  setTimeout(()=>el.textContent=orig,2200);
+}));
+document.getElementById('lampOff').onclick=()=>{
+  document.getElementById('finale').classList.remove('show');
+  document.body.classList.remove('on');
+  document.querySelector('#intro .note').innerHTML='<b>Thanks for stopping by ✦</b>The lamp\'s off, but the door\'s always open. You can switch it back on anytime.';
+};
+document.querySelectorAll('[data-close]').forEach(b=>b.onclick=closeSheets);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheets();});
+
+/* stars for window sheet */
+function drawStars(){
+  const c=document.getElementById('stars'), x=c.getContext('2d');
+  c.width=innerWidth; c.height=innerHeight; x.clearRect(0,0,c.width,c.height);
+  for(let i=0;i<120;i++){x.globalAlpha=Math.random()*.8+.2;x.fillStyle='#fff';
+    x.beginPath();x.arc(Math.random()*c.width,Math.random()*c.height,Math.random()*1.3,0,7);x.fill();}
+}
+</script>
+</body>
+</html>
